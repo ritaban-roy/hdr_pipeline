@@ -18,6 +18,10 @@ def get_opts():
                         help='set to True to perform color correction')
     parser.add_argument('--tonemap', type=str, default='xyy',
                         help='Tonemap algo : xyy or rgb')
+    parser.add_argument('--key', type=float, default=0.10,
+                        help='key for tonemapping')
+    parser.add_argument('--burn', type=float, default=0.90,
+                        help='burn for tonemapping')
     opts = parser.parse_args()
 
     return opts

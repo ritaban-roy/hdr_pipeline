@@ -345,10 +345,10 @@ def main(opts):
         g_func = None
     
     I_HDR = merging(opts.img_dir, opts.ext, opts.weight_algo, opts.merge_algo, g_func)
-    writeHDR(f'{opts.exp_name}_{opts.weight_algo}_{opts.merge_algo}.hdr', I_HDR)
+    writeHDR(f'{opts.ext}_{opts.weight_algo}_{opts.merge_algo}.hdr', I_HDR)
     curr_file = f'{opts.ext}_{opts.weight_algo}_{opts.merge_algo}.hdr'
     if opts.color_correction:
-        I_HDR, curr_file = correct_color_correction(opts.img_dir, f'{opts.exp_name}_{opts.weight_algo}_{opts.merge_algo}.hdr', opts.ext, opts.wbal) 
+        I_HDR, curr_file = correct_color_correction(curr_file, opts.ext, opts.wbal) 
     
     if(opts.tonemap == 'xyy'):
         tonemap_xyz(curr_file, K=opts.key, B=opts.burn, gamma=True)

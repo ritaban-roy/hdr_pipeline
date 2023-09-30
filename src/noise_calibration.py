@@ -18,33 +18,25 @@ def weighting_scheme_numpy(x, t_k, gain, var_add, zmin=0.05, zmax=0.95):
         else: 
             return 0.0
     apply_func = np.vectorize(uniform_func)
-    #print(np.max(x))
     return apply_func(x)
-    #print(ret1.dtype)
-    #print(np.max(ret1))
-    #exit()
     
 
-def merging(image_dir, ext='tiff', merge_algo='linear', g=None):
+def merging(image_dir, ext='tiff', merge_algo='linear', gain=24.98, var_add=9852.45, g=None):
     with open('dark_frame.pkl', 'rb') as pkl:
+        #dark frame was captured at 1/6 shutter speed
         dark_frame = pickle.load(pkl)*6
     
-    print(np.max(dark_frame))
     
     for k in range(1, 17):
         t_k = (2**(k-1))/2048
-        #print(np.max(image_k))
         image_k = io.imread(os.path.join(image_dir, f'exposure{k}.{ext}')) - (t_k * dark_frame)
-        #print(np.max(image_k))
-        #image_k = image_k 
+ 
         if(k == 1):
             I_HDR_num = np.zeros_like(image_k)
             I_HDR_den = np.zeros_like(image_k)
-            #underexposed = np.zeros_like(image_k).astype(np.bool_)
             overexposed = np.zeros_like(image_k).astype(np.bool_)
         if(ext != 'jpg'):
             I_k = image_k/(2**16 - 1)
-            #underexposed = np.logical_or(underexposed, (I_k > 0.05))
             overexposed = np.logical_or(overexposed, (I_k < 0.95))
         else:
             #print(np.max(image_k))
@@ -54,17 +46,10 @@ def merging(image_dir, ext='tiff', merge_algo='linear', g=None):
             #print("Applying!")
             image_k = np.exp(g[image_k])
         
-        
-        #print("ik before", np.max(I_k))
-        print("Weight apply")
         w = np.zeros_like(I_k)
-        #print(np.max(weighting_scheme_numpy(I_k[:, :, 0], t_k=t_k, gain=26.25, var_add=0)))
-        #exit()
-        w[:, :, 0] = weighting_scheme_numpy(I_k[:, :, 0], t_k=t_k, gain=24.98, var_add=9852.45)
-        w[:, :, 1] = weighting_scheme_numpy(I_k[:, :, 1], t_k=t_k, gain=24.98, var_add=9852.45)
-        w[:, :, 2] = weighting_scheme_numpy(I_k[:, :, 2], t_k=t_k, gain=24.98, var_add=9852.45)
-        print("Done Weights")
-        #print(np.max(w))
+        w[:, :, 0] = weighting_scheme_numpy(I_k[:, :, 0], t_k=t_k, gain=gain, var_add=var_add)
+        w[:, :, 1] = weighting_scheme_numpy(I_k[:, :, 1], t_k=t_k, gain=gain, var_add=var_add)
+        w[:, :, 2] = weighting_scheme_numpy(I_k[:, :, 2], t_k=t_k, gain=gain, var_add=var_add)
         if(merge_algo == 'log'):
             try:
                 #print(t_k)
@@ -131,8 +116,7 @@ def check_ramp():
     for i in range(1, 51):
         curr_image = io.imread(f'../data/ramp_frames/exposure{i}.tiff')
         curr_image = curr_image - dark_frame
-        #center = curr_image.shape[0]//2, curr_image.shape[1]//2
-        #curr_image = curr_image[center[0]-200:center[0]+200, center[1]-200:center[1]+200, :]
+    
         if(i == 1):
             tot_image = curr_image
         else:
@@ -143,12 +127,12 @@ def check_ramp():
     
     
     x = range(1, 51)
-    # plt.bar(x, hist_1, width=0.8)
-    # plt.show()
-    # plt.bar(x, hist_2, width=0.8)
-    # plt.show()
-    # plt.bar(x, hist_3, width=0.8)
-    # plt.show()
+    plt.bar(x, hist_1, width=0.8)
+    plt.show()
+    plt.bar(x, hist_2, width=0.8)
+    plt.show()
+    plt.bar(x, hist_3, width=0.8)
+    plt.show()
     mean_image = tot_image/50
     
     for i in range(1, 51):
@@ -179,30 +163,18 @@ def check_ramp():
     gc.collect()
     count_x = np.bincount(inverse_indices)
 
-    # Calculate the average by dividing the sum by the count (avoiding division by zero)
     result_y = sum_y / count_x
     print(unique_x.shape, result_y.shape)
     
-    #m, b = np.polyfit(result_y[150:], unique_x[150:], 1)
-    #unique_x = unique_x[150:]
-    ##result_y = result_y[150:]
     m, b, r_value, p_value, std_err = linregress(unique_x, result_y)
     print(m, b)
-    #0.059136328531279966 172.81243958348
     plt.plot(unique_x, result_y, color='blue')
     plt.plot(unique_x, m*unique_x + b, color='red')
     plt.show()
-    #print(m, b)
-    
-    # plt.scatter(range(mean_image.shape[0]), mean_image)
-    # plt.show()
 
 if __name__ == '__main__':
     #calculate_dark_frame()
     #check_ramp()
-    #6.2e7 26.264379531886387 5245.0600968491635
-    #6e7 25.978903316704127 9376.157294784702
-    #6.4e7 26.2560571415451 4972.189538328763
-    #6.5e7 24.987838304557737 9852.451198679279
-    I_HDR = merging('../data/door_stack/', 'tiff', 'linear')
-    writeHDR(f'door_noise_linear.hdr', I_HDR)
+    
+    I_HDR = merging('../data/my_stack/', 'tiff', 'linear', gain=24.98, var_add=9852.45)
+    writeHDR(f'my_noise_linear.hdr', I_HDR)
